@@ -154,6 +154,13 @@ export const NumberShape = new CNumberShape();
 export const NullableNumberShape = new CNumberShape();
 
 export class CStringShape {
+
+  value: string
+
+  constructor(value: string) {
+    this.value = value
+  }
+
   public get type(): BaseShape.STRING {
     return BaseShape.STRING;
   }
@@ -164,11 +171,16 @@ export class CStringShape {
     return NullableStringShape;
   }
   public makeNonNullable(): CStringShape {
-    return StringShape;
+    return new CStringShape(this.value);
   }
   public emitType(e: Emitter): void {
     e.interfaces.write(this.getProxyType(e));
   }
+
+  public emitHint(e: Emitter): void {
+    e.interfaces.write(` /* ${this.value} */`);
+  }
+
   public getProxyType(e: Emitter): string {
     let rv = "string";
     if (this.nullable) {
@@ -181,8 +193,7 @@ export class CStringShape {
   }
 }
 
-export const StringShape = new CStringShape();
-export const NullableStringShape = new CStringShape();
+export const NullableStringShape = new CStringShape("");
 
 export class CBooleanShape {
   public get type(): BaseShape.BOOLEAN {
@@ -401,7 +412,13 @@ export class CRecordShape {
       }
       w.write(": ");
       t.emitType(e);
-      w.write(";").endl();
+      w.write(";")
+
+      if (t instanceof CStringShape) {
+        t.emitHint(e)
+      }
+
+      w.endl();
     });
     w.write(`}`);
   }
@@ -609,7 +626,7 @@ export function d2s(e: Emitter, d: any): Shape {
     case 'number':
       return NumberShape;
     case 'string':
-      return StringShape;
+      return new CStringShape(d);
     case 'boolean':
       return BooleanShape;
   }
